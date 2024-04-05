@@ -1,0 +1,89 @@
+version: '3.9'
+services:
+  db:
+    container_name: db4${COMPOSE_PROJECT_NAME_DEV}
+    ports:
+      - "${POSTGRES_OUTPUT_PORT_DEV}:${POSTGRES_PORT}"
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+  
+  geoserver:
+    container_name: geoserver4${COMPOSE_PROJECT_NAME_DEV}
+    environment:
+      - STABLE_EXTENSIONS=${STABLE_EXTENSIONS}
+      - EXTRA_JAVA_OPTS=${EXTRA_JAVA_OPTS}
+      - POSTGRES_JNDI_ENABLED=${POSTGRES_JNDI_ENABLED}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${GEOSERVER_POSTGRES_DB}
+      - POSTGRES_USERNAME=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_JNDI_RESOURCE_NAME=${POSTGRES_JNDI_RESOURCE_NAME}
+    ports:
+      - "${GEOSERVER_PORT}:8080"
+  
+  geonetwork:
+    container_name: geonetwork${COMPOSE_PROJECT_NAME_DEV}
+    ports:
+      - "${GEONETWORK_PORT}:8080"
+    environment:
+      - WEBAPP_CONTEXT_PATH=${GEONETWORK_WEBAPP_CONTEXT_PATH}
+      - DATA_DIR=${GEONETWORK_DATA_DIR}
+      - TZ=${GEONETWORK_TZ}
+      - JAVA_OPTS=>-
+        --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED
+        -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true
+        -Xms512M -Xss512M -Xmx2G -XX:+UseConcMarkSweepGC
+        -Djetty.httpConfig.requestHeaderSize=32768
+        -Dorg.eclipse.jetty.server.Request.maxFormContentSize=500000
+        -Dorg.eclipse.jetty.server.Request.maxFormKeys=4000
+      # For remote debug
+      # -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005
+      - GN_CONFIG_PROPERTIES=>-
+        -Dgeonetwork.dir=/catalogue-data
+        -Dgeonetwork.formatter.dir=/catalogue-data/data/formatter
+        -Dgeonetwork.schema.dir=/opt/geonetwork/WEB-INF/data/config/schema_plugins
+        -Dgeonetwork.indexConfig.dir=/opt/geonetwork/WEB-INF/data/config/index
+        -Dgeonetwork.schemapublication.dir=/opt/geonetwork/WEB-INF/data/resources/schemapublication
+        -Dgeonetwork.htmlcache.dir=/opt/geonetwork/WEB-INF/data/resources/htmlcache
+        -Des.host=elasticsearch
+        -Des.protocol=http
+        -Des.port=9200
+        -Des.url=http://elasticsearch:9200
+        -Des.username=
+        -Des.password=
+        -Dgeonetwork.ESFeaturesProxy.targetUri=http://elasticsearch:9200/gn-features/{_}
+        -Dgeonetwork.HttpDashboardProxy.targetUri=http://kibana:5601
+      - GEONETWORK_DB_TYPE=${GEONETWORK_DB_TYPE}
+      - GEONETWORK_DB_HOST=${POSTGRES_HOST}
+      - GEONETWORK_DB_PORT=${POSTGRES_PORT}
+      - GEONETWORK_DB_NAME=${GEONETWORK_POSTGRES_DB}
+      - GEONETWORK_DB_USERNAME=${POSTGRES_USER}
+      - GEONETWORK_DB_PASSWORD=${POSTGRES_PASSWORD}
+  
+  elasticsearch:
+    ports:
+      - "${ES_PORT}:9200"
+    environment:
+      ES_JAVA_OPTS: -Xms1G -Xmx1G
+      discovery.type: single-node
+  
+  kibana:
+    environment:
+      SERVER_NAME: kibana
+      ELASTICSEARCH_URL: http://elasticsearch:9200/
+      SERVER_BASEPATH: /geonetwork/dashboards
+      SERVER_REWRITEBASEPATH: 'false'
+      KIBANA_INDEX: .dashboards
+      XPACK_MONITORING_UI_CONTAINER_ELASTICSEARCH_ENABLED: 'true'
+
+volumes:
+  dbdata:
+    name: ${COMPOSE_PROJECT_NAME_DEV}-db_data
+  geoserver_data:
+    name: ${COMPOSE_PROJECT_NAME_DEV}-geoserver_data
+  geonetwork_data:
+    name: ${COMPOSE_PROJECT_NAME_DEV}-geonetwork_data
+  es_data:
+    name: ${COMPOSE_PROJECT_NAME_DEV}-es_data

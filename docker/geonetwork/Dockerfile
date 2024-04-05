@@ -1,0 +1,1 @@
+FROM geonetwork:latest
