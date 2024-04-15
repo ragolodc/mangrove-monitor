@@ -1,7 +1,8 @@
 version: '3.9'
+
 services:
   db:
-    container_name: db4${COMPOSE_PROJECT_NAME_DEV}
+    # container_name: db4${COMPOSE_PROJECT_NAME_DEV}
     ports:
       - "${POSTGRES_OUTPUT_PORT_DEV}:${POSTGRES_PORT}"
     environment:
@@ -9,7 +10,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
   
   geoserver:
-    container_name: geoserver4${COMPOSE_PROJECT_NAME_DEV}
+    # container_name: geoserver4${COMPOSE_PROJECT_NAME_DEV}
     environment:
       - STABLE_EXTENSIONS=${STABLE_EXTENSIONS}
       - EXTRA_JAVA_OPTS=${EXTRA_JAVA_OPTS}
@@ -24,14 +25,14 @@ services:
       - "${GEOSERVER_PORT}:8080"
   
   geonetwork:
-    container_name: geonetwork${COMPOSE_PROJECT_NAME_DEV}
+    # container_name: geonetwork${COMPOSE_PROJECT_NAME_DEV}
     ports:
       - "${GEONETWORK_PORT}:8080"
     environment:
-      - WEBAPP_CONTEXT_PATH=${GEONETWORK_WEBAPP_CONTEXT_PATH}
-      - DATA_DIR=${GEONETWORK_DATA_DIR}
-      - TZ=${GEONETWORK_TZ}
-      - JAVA_OPTS=>-
+      WEBAPP_CONTEXT_PATH: ${GEONETWORK_WEBAPP_CONTEXT_PATH}
+      DATA_DIR: ${GEONETWORK_DATA_DIR}
+      TZ: ${GEONETWORK_TZ}
+      JAVA_OPTS: >-
         --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED
         -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true
         -Xms512M -Xss512M -Xmx2G -XX:+UseConcMarkSweepGC
@@ -40,7 +41,7 @@ services:
         -Dorg.eclipse.jetty.server.Request.maxFormKeys=4000
       # For remote debug
       # -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005
-      - GN_CONFIG_PROPERTIES=>-
+      GN_CONFIG_PROPERTIES: >-
         -Dgeonetwork.dir=/catalogue-data
         -Dgeonetwork.formatter.dir=/catalogue-data/data/formatter
         -Dgeonetwork.schema.dir=/opt/geonetwork/WEB-INF/data/config/schema_plugins
@@ -55,12 +56,12 @@ services:
         -Des.password=
         -Dgeonetwork.ESFeaturesProxy.targetUri=http://elasticsearch:9200/gn-features/{_}
         -Dgeonetwork.HttpDashboardProxy.targetUri=http://kibana:5601
-      - GEONETWORK_DB_TYPE=${GEONETWORK_DB_TYPE}
-      - GEONETWORK_DB_HOST=${POSTGRES_HOST}
-      - GEONETWORK_DB_PORT=${POSTGRES_PORT}
-      - GEONETWORK_DB_NAME=${GEONETWORK_POSTGRES_DB}
-      - GEONETWORK_DB_USERNAME=${POSTGRES_USER}
-      - GEONETWORK_DB_PASSWORD=${POSTGRES_PASSWORD}
+      GEONETWORK_DB_TYPE: ${GEONETWORK_DB_TYPE}
+      GEONETWORK_DB_HOST: ${POSTGRES_HOST}
+      GEONETWORK_DB_PORT: ${POSTGRES_PORT}
+      GEONETWORK_DB_NAME: ${GEONETWORK_POSTGRES_DB}
+      GEONETWORK_DB_USERNAME: ${POSTGRES_USER}
+      GEONETWORK_DB_PASSWORD: ${POSTGRES_PASSWORD}
   
   elasticsearch:
     ports:
@@ -77,6 +78,11 @@ services:
       SERVER_REWRITEBASEPATH: 'false'
       KIBANA_INDEX: .dashboards
       XPACK_MONITORING_UI_CONTAINER_ELASTICSEARCH_ENABLED: 'true'
+
+  mapstore:
+    ports:
+      - "${MAPSTORE_PORT}:8080"
+
 
 volumes:
   dbdata:

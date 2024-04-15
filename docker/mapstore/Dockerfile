@@ -1,0 +1,1 @@
+FROM geosolutionsit/mapstore2:latest

@@ -1,5 +1,9 @@
 version: '3.9'
 
+networks:
+  mangrove-network:
+    driver: bridge
+
 services:
   db:
     build:
@@ -15,6 +19,8 @@ services:
     restart: on-failure
     healthcheck:
       test: "pg_isready -d postgres -U postgres"
+    networks:
+      - mangrove-network
   
   geoserver:
     build:
@@ -29,6 +35,8 @@ services:
       interval: 1m
       retries: 3
       timeout: 5s
+    networks:
+      - mangrove-network
   
   geonetwork:
     build:
@@ -39,7 +47,7 @@ services:
     volumes:
       - geonetwork_data:/catalogue-data
     healthcheck:
-      test: curl http://localhost:8080/
+      test: curl http://localhost:8081/
       interval: 5s
       timeout: 5s
       retries: 30
@@ -47,6 +55,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - mangrove-network
 
   elasticsearch:
     build:
@@ -67,6 +77,8 @@ services:
       start_period: 2m
     volumes:
       - es_data:/opt/es_data
+    networks:
+      - mangrove-network
   
   kibana:
     build:
@@ -75,3 +87,16 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+    networks:
+      - mangrove-network
+
+  mapstore:
+    build:
+      context: ./
+      dockerfile: ./docker/mapstore/Dockerfile
+      args:
+        OVR: "geostore-datasource-ovr.properties"
+        MAPSTORE_WEBAPP_SRC: "https://github.com/geosolutions-it/MapStore2/releases/latest/download/mapstore.war"
+    extra_hosts:
+      host.docker.internal: host-gateway
+    

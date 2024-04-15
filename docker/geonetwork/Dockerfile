@@ -1,1 +1,1 @@
-FROM geonetwork:latest
+FROM geonetwork:4.4

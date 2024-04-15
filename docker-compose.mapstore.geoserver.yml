@@ -1,0 +1,96 @@
+version: '3.9'
+
+services:
+  db:
+    build:
+      context: ./
+      dockerfile: ./docker/database/postgresql/Dockerfile
+    command: postgres -c "max_connections=${POSTGRESQL_MAX_CONNECTIONS}"
+    # container_name: db4${COMPOSE_PROJECT_NAME}
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_OUTPUT_PORT_DEV}:${POSTGRES_PORT}"
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      # - dbbackups:/pg_backups
+    restart: on-failure
+    healthcheck:
+      test: "pg_isready -d postgres -U postgres"
+    networks:
+      - mangrove-network
+  geoserver:
+    build:
+      context: ./
+      dockerfile: ./docker/geoserver/Dockerfile
+    env_file:
+      - .env
+    environment:
+      - STABLE_EXTENSIONS=${STABLE_EXTENSIONS}
+      - EXTRA_JAVA_OPTS=${EXTRA_JAVA_OPTS}
+      - POSTGRES_JNDI_ENABLED=${POSTGRES_JNDI_ENABLED}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${GEOSERVER_POSTGRES_DB}
+      - POSTGRES_USERNAME=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_JNDI_RESOURCE_NAME=${POSTGRES_JNDI_RESOURCE_NAME}
+    ports:
+      - "${GEOSERVER_PORT}:8080"
+    volumes:
+      - geoserver_data:/opt/geoserver_data
+    networks:
+      - mangrove-network
+    hostname: geoserver
+    healthcheck:
+      test: curl --fail "http://geoserver:8080/geoserver/web/wicket/resource/org.geoserver.web.GeoServerBasePage/img/logo.png" || exit 1
+      interval: 1m
+      retries: 3
+      timeout: 5s
+
+  mapstore:
+    build:
+      context: ./
+      dockerfile: ./docker/mapstore/Dockerfile
+      args:
+        OVR: "geostore-datasource-ovr.properties"
+    env_file:
+      - .env
+    ports:
+      - "${MAPSTORE_PORT}:8080"
+    depends_on:
+      - db
+    networks:
+      - mangrove-network
+    hostname: mapstore
+    healthcheck:
+      test: curl --fail "http://mapstore:8080/mapstore/web/" || exit 1
+      interval: 1m
+      retries: 3
+      timeout: 5s
+
+  nginx:
+    build:
+      context: ./
+      dockerfile: ./docker/nginx/Dockerfile
+    ports:
+      - "${NGINX_PORT}:80"
+    env_file:
+      - .env
+    volumes:
+      - ./docker/nginx/nginx-config:/etc/nginx/conf.d
+    networks:
+      - mangrove-network
+
+networks:
+  mangrove-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    name: ${COMPOSE_PROJECT_NAME_DEV}-db_data-stand-alone
+  geoserver_data:
+    name: ${COMPOSE_PROJECT_NAME_DEV}-geoserver_data-stand-alone

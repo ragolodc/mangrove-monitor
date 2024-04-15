@@ -8,3 +8,7 @@ printf "\nCreating database $GEONETWORK_POSTGRES_DB...\n"
 psql << EOF
 CREATE DATABASE $GEONETWORK_POSTGRES_DB;
 EOF
+printf "\nCreating database $MAPSTORE_POSTGRES_DB...\n"
+psql << EOF
+CREATE DATABASE $MAPSTORE_POSTGRES_DB;
+EOF
